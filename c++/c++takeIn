@@ -1,0 +1,7 @@
+一、基础部分
+1.1 关于编程是否头部添加：using namespace std
+头部添加using namespace std，可以对std包含的类
+cout cin string等提供方便，不需要使用std::；
+但是，里面的函数名容易跟自定义函数名冲突，导致
+一些参数模糊之类的诡异报错。
+建议：直接使用std::，减少带来不必要的麻烦.
