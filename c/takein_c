@@ -1,0 +1,374 @@
+第一部分：回顾指针的C语言技巧
+关于指针变量
+void *p 
+从数据的角度，指向了一个void类型的数据，也就是该地址存储的数据长度未知。
+从指针的角度，体现在p++和p--的跨度上，void*类型，跨度上就是默认的指针4字节长度。
+举例：
+int *p = &a;
+p的当前地址
+p++之后的当前地址；
+char *p = &b;
+p++之后的当前地址；
+
+联系与应用：指针变量在访问寄存器和内存中的使用
+#define regAddr 	0xDF000000
+void *p;
+p = (void *)regAddr;
+*p = *((void)*)regAddr;
+问题：寄存器地址和内存地址的区别，能否按上面同样的方式处理？
+寄存器分为通用寄存器和特殊功能寄存器。特殊功能寄存器
+可以通过【映射】一段内存空间，作为自己的可访问地址，在数据手册里面一般有描述；
+这样就可以通过指针的方式，写入固定【内存地址】或者【寄存器地址】一定的数据。
+实际实验x86主机：
+int a = 7;
+int *p; 
+int main(void)
+        {
+
+                p = (void *)0x2d5cedff;
+
+                printf("p = %p\n",p);
+                p = &a; 
+
+                printf("p = %p\n",p);
+
+                return 0;
+        }
+不给定指针指向的数据时，地址打印输出正常；给定数据时，打印地址是操作系统分配的地址。
+
+函数指针是一个指针类型：
+void fun1(void);
+(void)(*fun)(void) = &fun1;
+或者
+void(*fun)(void);
+fun = &fun1;
+是否可以这样：*fun = fun1;//测试语法不支持
+
+#define		 VIC0ADDRESS		0xF0000010
+/************************分解理解的内容*********************
+unsigned int *p = (unsigned int *)VIC0ADDRESS;//寄存器地址赋值给指针
+*p =  *((unsigned int *)VIC0ADDRESS);//寄存器里面填什么数据
+************************************************************/
+#define 	 rVIC0ADDRESS		*((volatile unsigned int *)VIC0ADDRESS)
+
+/********由这里引发一个关于所有指针知识点的梳理************/
+2.1 变量指针；
+int *p；
+p = &a;
+
+案例：1 int *p = (int *) 0x30008000;
+	  *p = 16;
+该案例操作的环境是裸机，地址是寄存器地址；如果是系统下，应用程序去操作地址，报段错误，很可能是用户态下不能直接给特定地址写数据!!!!!
+2.2 指针数组与数组指针；
+指针数组 存放指针的数组 *p[];
+数组指针 指向数组的指针 (*p)[];
+
+2.2.1 存放指针的数组 *p[]
+int *a;
+int *b;
+int *p[2] = {a,b};
+测试：用一个循环实现遍历几个int 型指针指向的数值，测试通过；
+2.2.2 函数指针数组
+//int (*func1)(void);
+//int (*func2)(void);
+*p[]; //指针数组 
+int (*p[])(void) //函数指针数组
+int (*p[]) (void) = {&fun1,&fun2}; 
+// func1 = &fun1 or  int (*func1)(void) = &fun1  ; call (*func1)();
+//demo 2
+const double* (*p[2])(const char *x, const char *y);
+
+注意：测试通过，关键是上面这句的语法理解！！！！
+对比 2.2.3试验不同在这里是通过函数指针数组，访问每个函数指针;
+2.2.3 指向数组的指针 (*p)[] //这里数组可以多样性
+对比跟 2.2.2不同在这里是通过指向数组的指针，访问数组的具体数值；//这里思路并不像上面的2.2.1写测试代码 的思路 清晰
+注意：数组 的首地址和数组首元素 的首地址的不同；
+int a[] = {1,2,3,4};
+printf("a = %p.\n", a);//the same as &a
+printf("&a =%p.\n", &a);
+printf("a+1 = %p.\n",a+1);//the result is base_addr +4
+printf("(&a+1) = %p.\n",(&a+1));//should the base_addr + 16(0x10)
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(void)
+{
+	int a[5] = {1,2,3,4,5};
+#if 0
+	int *p= a;
+#endif
+
+#if 1
+	int (*p)[5] = &a;
+#endif
+
+	//int *p = malloc(sizeof (a));
+
+	printf("a =%p\n",a);
+	
+	printf("&a[0] =%p\n",&a[0]);
+	printf("&a =%p\n",&a);
+
+
+	printf("p =%p\n",p);
+
+	printf("p+1 =%p\n",p+1);
+
+//return 0;
+//	printf(" *p = %d\n",*p);
+//	printf(" *(p+1) =%ls\n",*(p+1));
+
+	return 0;
+}
+
+测试：通过指针访问数组 (PASS)
+key:int (*p)[] = &a;//int b = 5;int *p = &b;!!!!!
+printf("(*p)[0] = %d.\n",(*p)[0]);
+数组指针的用途：
+1 通过指针访问数组，比直接访问数组效率高；
+2 fun((*p)[10]) 比直接 fun(int *p, int len)调用，这样更有约束效果；
+fun(int *p, int len) 这样的定义方式显然无法保证传递给 fun() 函数的内存长度等于期望值；
+########################################################################
+/***********************************************************************
+@ author:lzy 
+@ time:20190820
+@ 目前整理到这里
+************************************************************************/ 
+2.3 字符串指针；
+2.3.1 字符串 : C语言没有原生字符串类型，是用指针管理字符串。
+简例：char *p = "linux"，这里p本质上是字符指针，占4个字节；
+	  char a[] = "linux";
+理解：字符串和字符数组比较像；固定头部和尾部的一段连续内存，尾部以'\0'结尾；
+'\0'是ASCII码，对应的编码是0；'0'对应的编码是48；
+注意sizeof这个C语言关键字和strlen这个C语言库函数的区别
+demo:
+#include "stdio.h"
+int mystrlen(const char *p)
+{
+    int cnt = 0;
+        while(*p++ != '\0')
+        {
+            cnt++;   
+        }
+    return cnt;
+}
+int main(int argc ,char *argv[])
+{
+    char *p = "linux";
+    int len = mystrlen(p);
+    printf("len = %d\n",len);
+    printf("p = %s\n",p);
+    printf("*p = %c\n",*p);
+    printf("*(p+1) = %c\n",*(p+1));
+
+    return 0;
+}
+demo2:const test
+/* int const *p
+ * const int *p 
+ * int *const p
+ * const int *const p 
+ */
+#include <stdio.h>
+int main(int argc, char *argv[], char **env){
+        int  a = 5;
+        #if 0 //test 1
+        int const *p;
+        p = &a; 
+        #endif  
+        #if 0 //test 2 
+        const int *p = &a;
+        #endif
+        #if 0 // test 3
+        int *const p;
+        p = &a; 
+        #endif 
+        #if 1
+        const int *const p;
+                p = &a; 
+        #endif 
+        //printf("*p+1 = %d\n",*p+1);
+        printf("p+1 = %p\n",p+1);
+        return 0;
+}
+
+2.3.2 
+字符和字符指针//等同于int 型变量
+字符串和字符串数组
+字符串指针
+字符串指针数组
+测试：字符串访问   
+char *p = "inux"; //b = 'l'
+printf("p = %s.\n",p);//这里字符串类型比较特殊，它是直接把首地址赋值给指针，而不是存放在指针指向的地址；！！！！！
+
+2.4 指针函数与函数指针；
+
+2.5 函数指针数组
+
+
+3. 调试bug;
+
+【注意】：在应用解引用指针操作前，一定要给指针一个合适的确定的初始化。否则，会出现：
+由于指针是个不确定的地址，指向非固定的数据。那么，解引用操作时，可能访问到非法地址(非代码段的地址)，引起段错误。
+#include <stdio.h>
+int fun(int a, int b)
+{ 
+ return a+b;
+}
+int main(void)
+{
+	int  a = 5;
+	/*
+	* author lzy time 20210206
+	* bug here
+	*/
+	int *p;
+	
+	int x = 0;
+	x =fun(3,5);
+	*p = 7;
+	printf("p = %p\n",p);
+	printf("*p = %d\n",*p);
+	return 0;
+
+}
+
+第二部分：其他数据类型
+
+2.1 共用体关于节省内存空间和空间覆盖问题
+eg code
+#include <iostream>
+#include <string>
+#include <cstring>
+using namespace std;
+
+union id {
+//string id_name;
+	char id_name[20];
+	int id_num;
+} id_1;
+
+int main(void)
+{
+	int type = 1;
+/*
+* 注意这里的id_1.id_num被赋值的位置。如果这个赋值语句放在 
+* id_1.id_name的赋值后面，则会导致数据把id_1.id_name的内存部分区域覆盖
+* 字符串打印会输出乱码
+*/
+#if 0
+	id_1.id_num =1;
+#endif 
+	//memset(id_1.id_name,0x00,sizeof(id_1.id_name));
+	strcpy(id_1.id_name,"liangzy");
+	cout << id_1.id_name << endl;
+#if 1 
+	id_1.id_num = 1;
+#endif 
+	if(1 == type){
+
+	cout << id_1.id_name << endl;
+	}
+	else{
+		cout << id_1.id_num << endl;
+	}
+
+	return 0;
+}
+
+第三部分：数据类型综合运用(涉及到C++)
+case 1
+#include <iostream>
+using namespace std;
+
+struct years_end{
+int year;
+};
+int main(int argc, char *argv[])
+{
+
+	years_end s1,s2,s3;
+	s1.year = 1998;
+	s2.year = 1999;
+	cout << s1.year << endl;
+	struct years_end *p = &s1;
+	cout << p->year << endl;
+	
+        struct years_end trio[3];
+       	trio[0].year = 2003;
+	cout << trio[0].year << endl;
+	
+
+	const struct years_end *array[3] = {&s1,&s2,&s3};//?
+	cout << array[0]->year << endl;
+	
+#if 0
+	/*
+	* 注意，这里array是一个数组元素的首地址，特殊在首元素还是指针，该指针指向struct years_end
+	* 这里ppa 本质上还是指针，退掉两层才指向数据
+	*/
+	const years_end **ppa = array;//
+#endif
+	auto ppb = array; // smart detect type
+	/*
+	* 注意这里的最外面的括号!!!!!
+	*/
+	cout << (*(ppb+1))->year << endl;//? 1999
+
+#if 0
+	cout << *(ppa+1)->year << endl;
+	auto ppb = array;
+	cout << ppb->year << endl;
+#endif 
+	return 0;
+}
+
+case 2 
+#include <iostream>
+using namespace std;
+/*
+ * 注意：这里这样传参的坏处，是函数调用时，我可以给一个假的长度数组欺骗编译器
+ */
+#if 0
+int hello(int a[8]);// proto type
+int main(void){
+	
+	int b[10] = {1,2,3,4,5,6,7,8,9,10};
+	hello(b);
+	return 0;
+}
+
+int hello(int a[8]){
+
+	for (int i = 0;i<8;i++)
+		cout << a[i] << endl;
+	cout<< "hello world" << endl;
+	return 0;
+}
+#endif
+/*
+* 注意：应该这样传参,数组长度单独作为一个参数
+*/
+int hello(int a[],int n);// proto type
+int main(void){
+	
+	int b[8] = {1,2,3,4,5,6,7,8};
+	hello(b,8);
+	return 0;
+}
+
+int hello(int a[],int n){
+
+	for (int i = 0;i<n;i++)
+		cout << a[i] << endl;
+	cout<< "hello world" << endl;
+	//"world" << endl;
+	return 0;
+}
+
+第四部分：一些补充
+4.1 关于递增和递减
+递增和递减运算符都是些漂亮的小型运算符，但不要失去控制，在同一个语句中递增和递减多次！！！！！
+x = 2 * X++ * (3 - ++X);//该表达式，C++没有定义正确的行为 禁止出现
+y = (4 + x++) + (6 + x++);	//避免使用
