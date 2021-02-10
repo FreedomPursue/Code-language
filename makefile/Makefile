@@ -32,4 +32,14 @@ OBJTREE := $(if $(CURDIR),$(CURDIR),$(U_BOOT_VERSION))
 	
 第二部分 语法
 2.1 关于ifneq 和 ifeq 后面紧跟判断语句时，有空格的，否则语法错误!!!!!
-2.3 if后面跟的任何语句，也是有空格的!!!!!
+2.2 if后面跟的任何语句，也是有空格的!!!!!
+2.3 Makefile中 export CROSS_COMPILE等，是将变量传到下一级的Makefile 
+2.4 Makefile中 例如：include $(TOPDIR)/config.mk 
+include是包含其他的Makefile或者.mk文件, 从而可以包含文件中的变量
+注：cskyToBoya的uboot-asic工程，ar,ld,objdump等交叉工具赋值放在了
+主Makefile; Samsumg的x210提供的uboot则放在了工程根目录下的config.mk.
+2.5 .PHONY,伪目标
+ .PHONY: build clean tool lint help
+ 声明为伪目标后：在执行对应的命令时，
+ make 就不会去检查是否存在build /clean /tool /lint /help 【其对应的文件】，而是每次都会运行标签对应的命令；
+ 若不声明：恰好存在对应的文件，则 make 将会认为 xx 文件已存在，没有重新构建的必要了
