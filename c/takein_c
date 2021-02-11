@@ -203,6 +203,24 @@ char *p = "inux"; //b = 'l'
 printf("p = %s.\n",p);//这里字符串类型比较特殊，它是直接把首地址赋值给指针，而不是存放在指针指向的地址；！！！！！
 
 2.4 指针函数与函数指针；
+这里以uboot代码为例讲解
+main.c中，函数指针 : (cmdtp->cmd)(cmdtp,flag,argc,argv)的调用，是
+int do_bootm(cmd_tbl_t *cmdtp,int flag,int argc,char *argv[]));
+int do_bootvx(cmd_tbl_t *cmdtp,int flag,int argc,char *argv[]))；
+int do_iminfo(cmd_tbl_t *cmdtp,int flag,int argc,char *argv[]));
+等等一系列同类型函数的具体实现
+eg2: mmc相关
+struct mmc {
+	struct list_head link;
+	...
+	...
+	int (*send_cmd)(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
+	...
+}
+in file drivers/mmc/s3c_hsmmc.c
+    	s3_hsmmc_send_command(struct mmc *mmc, struct mmc_cmd *cmd, struct mmc_data *data)
+		...
+等具体一系列sd设备接口的实现
 
 2.5 函数指针数组
 
@@ -277,7 +295,7 @@ int main(void)
 	return 0;
 }
 
-第三部分：数据类型综合运用(涉及到C++)
+第三部分：数据类型综合运用(涉及到C++ ,同时也包含复合数据类型：例如：结构体等)
 case 1
 #include <iostream>
 using namespace std;
@@ -372,3 +390,5 @@ int hello(int a[],int n){
 递增和递减运算符都是些漂亮的小型运算符，但不要失去控制，在同一个语句中递增和递减多次！！！！！
 x = 2 * X++ * (3 - ++X);//该表达式，C++没有定义正确的行为 禁止出现
 y = (4 + x++) + (6 + x++);	//避免使用
+
+第五部分：数据结构
